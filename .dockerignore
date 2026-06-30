@@ -1,0 +1,24 @@
+# DeforestNet Docker ignore
+__pycache__/
+*.pyc
+.git/
+.github/
+.venv/
+.env
+*.log
+logs/
+data/synthetic/*.npy
+data/raw/
+data/processed/
+database/*.db
+models/checkpoints/*.pth
+models/checkpoints/*.pt
+outputs/
+docs/
+Photos/
+ARCHITECTURE/
+PPT_DOCS/
+Questions/
+.claude/
+*.md
+!requirements.txt

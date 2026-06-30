@@ -1,0 +1,30 @@
+{
+  "train_samples": 800,
+  "val_samples": 200,
+  "test_samples": 200,
+  "image_size": 256,
+  "num_channels": 11,
+  "num_classes": 6,
+  "class_names": [
+    "Forest",
+    "Logging",
+    "Mining",
+    "Agriculture",
+    "Fire",
+    "Infrastructure"
+  ],
+  "band_names": [
+    "VV",
+    "VH",
+    "B2",
+    "B3",
+    "B4",
+    "B8",
+    "NDVI",
+    "EVI",
+    "SAVI",
+    "VV_VH_RATIO",
+    "RVI"
+  ],
+  "seed": 42
+}

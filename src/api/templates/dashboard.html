@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeforestNet - Satellite Deforestation Monitoring</title>
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <!-- Leaflet Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- CSS -->
+    <link rel="stylesheet" href="/static/css/dashboard.css">
+</head>
+<body>
+
+<!-- ==================== SIDEBAR ==================== -->
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <div class="logo">
+            <div class="logo-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                    <path d="M2 17l10 5 10-5"/>
+                    <path d="M2 12l10 5 10-5"/>
+                </svg>
+            </div>
+            <div class="logo-text">
+                <span class="logo-title">DeforestNet</span>
+                <span class="logo-subtitle">Satellite Monitoring</span>
+            </div>
+        </div>
+    </div>
+
+    <nav class="sidebar-nav">
+        <a href="#" class="nav-item active" data-page="dashboard" onclick="switchPage('dashboard')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+            <span>Dashboard</span>
+        </a>
+        <a href="#" class="nav-item" data-page="alerts" onclick="switchPage('alerts')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <span>Alerts</span>
+            <span class="nav-badge" id="alertBadge">0</span>
+        </a>
+        <a href="#" class="nav-item" data-page="map" onclick="switchPage('map')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+            <span>Map View</span>
+        </a>
+        <a href="#" class="nav-item" data-page="officers" onclick="switchPage('officers')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+            <span>Officers</span>
+        </a>
+        <a href="#" class="nav-item" data-page="notifications" onclick="switchPage('notifications')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+            <span>Notifications</span>
+        </a>
+        <a href="#" class="nav-item" data-page="predictions" onclick="switchPage('predictions')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <span>Predictions</span>
+        </a>
+    </nav>
+
+    <div class="sidebar-footer">
+        <div class="system-status">
+            <div class="status-dot" id="systemStatusDot"></div>
+            <span id="systemStatusText">Connecting...</span>
+        </div>
+    </div>
+</aside>
+
+<!-- ==================== MAIN CONTENT ==================== -->
+<main class="main-content">
+
+    <!-- Top Bar -->
+    <header class="topbar">
+        <button class="sidebar-toggle" onclick="toggleSidebar()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <h1 class="page-title" id="pageTitle">Dashboard</h1>
+        <div class="topbar-actions">
+            <button class="btn btn-sm btn-outline" onclick="refreshData()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+                Refresh
+            </button>
+            <button class="btn btn-sm btn-outline" onclick="generateDemoPrediction()">
+                + Demo Prediction
+            </button>
+            <button class="btn btn-sm btn-primary" onclick="switchPage('predictions')" style="background:#22c55e;">
+                Analyze Satellite Image
+            </button>
+        </div>
+    </header>
+
+    <!-- ==================== DASHBOARD PAGE ==================== -->
+    <div class="page active" id="page-dashboard">
+        <!-- Stat Cards -->
+        <div class="stat-cards">
+            <div class="stat-card">
+                <div class="stat-icon stat-icon-alerts">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-value" id="totalAlerts">--</span>
+                    <span class="stat-label">Total Alerts</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon stat-icon-active">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-value" id="activeAlerts">--</span>
+                    <span class="stat-label">Active Alerts</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon stat-icon-resolved">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-value" id="resolvedAlerts">--</span>
+                    <span class="stat-label">Resolved</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon stat-icon-officers">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-value" id="totalOfficers">--</span>
+                    <span class="stat-label">Officers</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon stat-icon-confidence">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-value" id="avgConfidence">--</span>
+                    <span class="stat-label">Avg Confidence</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Auto-Monitoring Panel -->
+        <div class="table-card" style="margin-bottom:24px; border: 1px solid #1e40af;">
+            <div class="table-header" style="display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <h3 class="table-title" style="margin:0;">
+                        Automatic Satellite Monitoring
+                        <span id="monitorBadge" style="font-size:11px; padding:2px 8px; border-radius:4px; margin-left:8px; background:#ef4444; color:white;">STOPPED</span>
+                    </h3>
+                    <p style="color:#94a3b8; font-size:12px; margin:4px 0 0 0;">
+                        Like real deployment — AI automatically scans satellite images, detects deforestation, and sends alerts without any button click
+                    </p>
+                </div>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <select id="monitorInterval" style="background:#1e293b; color:white; border:1px solid #334155; padding:6px 10px; border-radius:6px; font-size:12px;">
+                        <option value="60">Every 1 min</option>
+                        <option value="120" selected>Every 2 min</option>
+                        <option value="300">Every 5 min</option>
+                    </select>
+                    <button class="btn btn-sm btn-primary" id="monitorToggleBtn" onclick="toggleMonitoring()" style="background:#22c55e; min-width:140px;">
+                        Start Monitoring
+                    </button>
+                </div>
+            </div>
+            <div id="monitorStats" style="display:none; padding:16px; padding-top:0;">
+                <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; margin-bottom:12px;">
+                    <div style="background:#0f172a; padding:10px; border-radius:6px; text-align:center;">
+                        <div style="font-size:20px; font-weight:700; color:#60a5fa;" id="monScans">0</div>
+                        <div style="font-size:11px; color:#94a3b8;">Images Scanned</div>
+                    </div>
+                    <div style="background:#0f172a; padding:10px; border-radius:6px; text-align:center;">
+                        <div style="font-size:20px; font-weight:700; color:#ef4444;" id="monAlerts">0</div>
+                        <div style="font-size:11px; color:#94a3b8;">Alerts Generated</div>
+                    </div>
+                    <div style="background:#0f172a; padding:10px; border-radius:6px; text-align:center;">
+                        <div style="font-size:20px; font-weight:700; color:#22c55e;" id="monNotifs">0</div>
+                        <div style="font-size:11px; color:#94a3b8;">Notifications Sent</div>
+                    </div>
+                    <div style="background:#0f172a; padding:10px; border-radius:6px; text-align:center;">
+                        <div style="font-size:20px; font-weight:700; color:#f59e0b;" id="monInterval">120s</div>
+                        <div style="font-size:11px; color:#94a3b8;">Scan Interval</div>
+                    </div>
+                </div>
+                <div style="font-size:12px; color:#94a3b8; margin-bottom:8px;"><strong>Recent Scan Log:</strong></div>
+                <div id="monitorLog" style="background:#0f172a; padding:10px; border-radius:6px; font-family:monospace; font-size:11px; max-height:200px; overflow-y:auto; color:#94a3b8;">
+                    Waiting for first scan...
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="charts-row">
+            <div class="chart-card">
+                <h3 class="chart-title">Deforestation by Cause</h3>
+                <div class="chart-container">
+                    <canvas id="causeChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <h3 class="chart-title">Alert Severity</h3>
+                <div class="chart-container">
+                    <canvas id="severityChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <h3 class="chart-title">Alert Status</h3>
+                <div class="chart-container">
+                    <canvas id="statusChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Alerts Table -->
+        <div class="table-card">
+            <div class="table-header">
+                <h3 class="table-title">Recent Alerts</h3>
+                <button class="btn btn-sm btn-outline" onclick="switchPage('alerts')">View All</button>
+            </div>
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Cause</th>
+                            <th>Severity</th>
+                            <th>Area (ha)</th>
+                            <th>Confidence</th>
+                            <th>Region</th>
+                            <th>Status</th>
+                            <th>Time</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recentAlertsBody">
+                        <tr><td colspan="8" class="empty-row">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== ALERTS PAGE ==================== -->
+    <div class="page" id="page-alerts">
+        <div class="page-toolbar">
+            <div class="filter-group">
+                <select id="alertStatusFilter" onchange="loadAlerts()">
+                    <option value="">All Statuses</option>
+                    <option value="pending">Pending</option>
+                    <option value="sent">Sent</option>
+                    <option value="acknowledged">Acknowledged</option>
+                    <option value="investigating">Investigating</option>
+                    <option value="resolved">Resolved</option>
+                </select>
+                <select id="alertRegionFilter" onchange="loadAlerts()">
+                    <option value="">All Regions</option>
+                </select>
+            </div>
+        </div>
+        <div class="table-card">
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Alert ID</th>
+                            <th>Cause</th>
+                            <th>Severity</th>
+                            <th>Area (ha)</th>
+                            <th>Confidence</th>
+                            <th>Location</th>
+                            <th>Region</th>
+                            <th>Officer</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="allAlertsBody">
+                        <tr><td colspan="10" class="empty-row">Loading alerts...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== MAP PAGE ==================== -->
+    <div class="page" id="page-map">
+        <div class="map-wrapper">
+            <div id="alertMap" class="alert-map"></div>
+        </div>
+        <div class="map-legend">
+            <h4>Severity Legend</h4>
+            <div class="legend-item"><span class="legend-dot" style="background:#facc15"></span> Low</div>
+            <div class="legend-item"><span class="legend-dot" style="background:#f97316"></span> Medium</div>
+            <div class="legend-item"><span class="legend-dot" style="background:#ef4444"></span> High</div>
+            <div class="legend-item"><span class="legend-dot" style="background:#7f1d1d"></span> Critical</div>
+            <div style="border-top:1px solid var(--border); margin:8px 0;"></div>
+            <div class="legend-item">
+                <span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:#f59e0b;border:2px solid #fff;box-shadow:0 0 0 2px #f59e0b;flex-shrink:0;"></span>
+                Latest Prediction
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== OFFICERS PAGE ==================== -->
+    <div class="page" id="page-officers">
+        <div class="page-toolbar">
+            <button class="btn btn-primary" onclick="showAddOfficerModal()">+ Add Officer</button>
+            <button class="btn btn-outline" onclick="setupDemoOfficers()">Setup Demo Officers</button>
+        </div>
+        <div class="officer-grid" id="officerGrid">
+            <div class="empty-state">Loading officers...</div>
+        </div>
+    </div>
+
+    <!-- ==================== NOTIFICATIONS PAGE ==================== -->
+    <div class="page" id="page-notifications">
+        <div class="notif-grid">
+            <!-- Tier Status Cards -->
+            <div class="tier-card">
+                <div class="tier-header tier-fcm">
+                    <h3>Tier 1: Firebase FCM</h3>
+                    <span class="tier-badge" id="fcmBadge">--</span>
+                </div>
+                <p class="tier-desc">Push notifications to mobile devices. Free: 500k/month</p>
+                <div class="tier-status" id="fcmStatus">--</div>
+            </div>
+            <div class="tier-card">
+                <div class="tier-header tier-telegram">
+                    <h3>Tier 2: Telegram</h3>
+                    <span class="tier-badge" id="telegramBadge">--</span>
+                </div>
+                <p class="tier-desc">Instant messages with images via Bot API. Free: Unlimited</p>
+                <div class="tier-status" id="telegramStatus">--</div>
+            </div>
+            <div class="tier-card">
+                <div class="tier-header tier-email">
+                    <h3>Tier 3: Email (Gmail)</h3>
+                    <span class="tier-badge" id="emailBadge">--</span>
+                </div>
+                <p class="tier-desc">HTML reports with attachments via SMTP. Free: 500/day</p>
+                <div class="tier-status" id="emailStatus">--</div>
+            </div>
+        </div>
+
+        <div class="table-card" style="margin-top:24px">
+            <div class="table-header">
+                <h3 class="table-title">Notification History</h3>
+                <button class="btn btn-sm btn-outline" onclick="testAllTiers()">Test All Tiers</button>
+            </div>
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Alert ID</th>
+                            <th>Tiers Used</th>
+                            <th>Success</th>
+                            <th>Timestamp</th>
+                        </tr>
+                    </thead>
+                    <tbody id="notifHistoryBody">
+                        <tr><td colspan="4" class="empty-row">No notifications yet</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== PREDICTIONS PAGE ==================== -->
+    <div class="page" id="page-predictions">
+        <div class="prediction-panel">
+            <!-- REAL SATELLITE ANALYSIS -->
+            <div class="predict-form-card" style="border: 2px solid #22c55e; position: relative;">
+                <div style="position:absolute; top:-10px; left:16px; background:#22c55e; color:#000; font-size:11px; font-weight:700; padding:2px 10px; border-radius:4px;">REAL AI MODEL</div>
+                <h3 style="color:#22c55e;">Analyze Satellite Image</h3>
+                <p style="color:#94a3b8; font-size:13px; margin-bottom:16px;">
+                    Picks a real 11-band Sentinel-1/2 test image, runs it through the <strong>trained U-Net neural network</strong>,
+                    detects deforestation cause, generates alert, sends notifications to officers, and pins location on the map.
+                </p>
+                <div style="background:#0f172a; padding:10px; border-radius:6px; margin-bottom:16px; font-size:12px; color:#60a5fa;">
+                    <strong>Pipeline:</strong> Satellite Image (11 bands) &rarr; U-Net Model &rarr; Deforestation Map &rarr; Alert &rarr; Telegram + Email &rarr; Map Pin
+                </div>
+                <button class="btn btn-primary btn-lg" onclick="runSatellitePrediction()" id="runSatelliteBtn" style="background:#22c55e; width:100%;">
+                    Analyze Satellite Image (Real AI)
+                </button>
+            </div>
+
+            <!-- MANUAL DEMO PREDICTION -->
+            <div class="predict-form-card" style="opacity: 0.7;">
+                <h3>Manual Demo Prediction <span style="font-size:11px; color:#94a3b8;">(random data, no model)</span></h3>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Cause</label>
+                        <select id="predCause">
+                            <option value="Logging">Logging</option>
+                            <option value="Mining" selected>Mining</option>
+                            <option value="Agriculture">Agriculture</option>
+                            <option value="Fire">Fire</option>
+                            <option value="Infrastructure">Infrastructure</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Latitude</label>
+                        <input type="number" id="predLat" value="10.5" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label>Longitude</label>
+                        <input type="number" id="predLon" value="76.3" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label>Region</label>
+                        <select id="predRegion">
+                            <option value="Western Ghats">Western Ghats</option>
+                            <option value="Northeast India">Northeast India</option>
+                            <option value="Central India">Central India</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Area Fraction (0.05 - 0.9)</label>
+                        <input type="range" id="predArea" min="0.05" max="0.9" step="0.05" value="0.3" oninput="document.getElementById('areaVal').textContent=this.value">
+                        <span id="areaVal" class="range-val">0.3</span>
+                    </div>
+                </div>
+                <button class="btn btn-primary btn-lg" onclick="runPrediction()" id="runPredBtn">
+                    Run Demo Prediction
+                </button>
+            </div>
+
+            <div class="predict-result-card" id="predResultCard">
+                <h3>Prediction Result</h3>
+                <div id="predResultContent" class="pred-result-content">
+                    <p class="empty-state">Click "Analyze Satellite Image" to run real AI analysis</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</main>
+
+<!-- ==================== MODAL ==================== -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal()">
+    <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <h3 id="modalTitle">Modal</h3>
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="modal-body" id="modalBody"></div>
+    </div>
+</div>
+
+<!-- Toast Notification -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="/static/js/dashboard.js"></script>
+</body>
+</html>

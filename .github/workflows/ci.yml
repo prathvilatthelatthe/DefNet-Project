@@ -1,0 +1,117 @@
+name: DeforestNet CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --extra-index-url https://download.pytorch.org/whl/cpu -r requirements.txt
+          pip install pytest
+
+      - name: Run unit tests
+        run: |
+          python -m pytest tests/ -v --tb=short
+
+      - name: Verify model builds
+        run: |
+          python -c "
+          from src.models import build_model
+          model = build_model()
+          params = sum(p.numel() for p in model.parameters())
+          print(f'Model parameters: {params:,}')
+          assert params > 20_000_000, 'Model too small'
+          print('Model build: OK')
+          "
+
+      - name: Verify data pipeline
+        run: |
+          python -c "
+          from src.data.synthetic_generator import SyntheticDataGenerator
+          gen = SyntheticDataGenerator(image_size=64, num_classes=6)
+          gen.generate_dataset(num_train=4, num_val=2, num_test=2)
+          print('Data pipeline: OK')
+          "
+
+      - name: Verify inference engine
+        run: |
+          python -c "
+          import torch
+          from src.models import build_model
+          from src.inference.engine import InferenceEngine
+          model = build_model()
+          engine = InferenceEngine(model, device='cpu')
+          dummy = torch.randn(1, 11, 256, 256)
+          result = engine.predict(dummy)
+          print(f'Inference output: {result[\"predictions\"].shape}')
+          assert result['predictions'].shape == (1, 256, 256)
+          print('Inference engine: OK')
+          "
+
+      - name: Quick demo run
+        run: |
+          python run_demo.py --quick
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install linters
+        run: pip install flake8
+
+      - name: Lint with flake8
+        run: |
+          # Stop on syntax errors or undefined names
+          flake8 src/ --count --select=E9,F63,F7,F82 --show-source --statistics
+          # Warnings (non-blocking)
+          flake8 src/ --count --exit-zero --max-complexity=15 --max-line-length=120 --statistics
+
+  docker:
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t deforestnet:latest .
+
+      - name: Test Docker image
+        run: |
+          docker run --rm deforestnet:latest python -c "
+          from src.models import build_model
+          model = build_model()
+          print(f'Docker build OK - params: {sum(p.numel() for p in model.parameters()):,}')
+          "
